@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IR EMS BBQ — Vendor Orders</title>
+<style>
+  :root{
+    --navy:#123A5C;
+    --blue:#1F8FD6;
+    --blue-deep:#0F6FB0;
+    --sky:#BEE1F4;
+    --cream:#F7F2E4;
+    --paper:#FFFDF6;
+    --shutter:#7FBF2E;
+    --ink:#1B2A38;
+    --muted:#6C8298;
+    --line:#DCD3BE;
+    --shadow:0 2px 0 rgba(18,58,92,.18);
+    --display:"Haettenschweiler","Arial Narrow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --marker:"Bradley Hand","Segoe Print","Segoe Script","Comic Sans MS",cursive;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{font-family:var(--body); color:var(--ink); background:var(--sky); padding-bottom:110px}
+  .board{position:relative; overflow:hidden; padding:18px 14px 22px; background:var(--blue)}
+  .board::before{
+    content:""; position:absolute; inset:-40% -20%;
+    background:repeating-conic-gradient(from 0deg at 50% 0%,
+      rgba(255,255,255,.16) 0deg 7deg, rgba(255,255,255,0) 7deg 14deg);
+    pointer-events:none;
+  }
+  .board-inner{position:relative}
+  .eyebrow{font-size:12px; font-weight:700; letter-spacing:.22em; text-transform:uppercase; color:rgba(255,255,255,.85); margin:0 0 2px}
+  h1{font-family:var(--display); font-size:44px; line-height:.92; margin:0; color:#fff; letter-spacing:.01em; text-shadow:3px 3px 0 var(--blue-deep)}
+  .badge{display:inline-block; margin-top:10px; padding:6px 12px; background:var(--cream); color:var(--navy); border-radius:999px; font-weight:800; font-size:13px; letter-spacing:.03em; box-shadow:var(--shadow)}
+  .tabs{display:flex; gap:8px; margin-top:14px}
+  .tab{flex:1; padding:11px 8px; border:0; border-radius:12px; font-family:var(--body); font-size:15px; font-weight:700; background:rgba(255,255,255,.22); color:#fff; cursor:pointer}
+  .tab[aria-selected="true"]{background:var(--paper); color:var(--navy); box-shadow:var(--shadow)}
+  .wrap{max-width:560px; margin:0 auto}
+  main{max-width:560px; margin:0 auto; padding:14px}
+  .card{background:var(--paper); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:12px}
+  label.field{display:block; font-size:13px; font-weight:700; color:var(--muted); letter-spacing:.04em; text-transform:uppercase; margin-bottom:6px}
+  input[type=text]{width:100%; padding:13px 12px; font-size:17px; font-family:var(--body); border:1px solid var(--line); border-radius:11px; background:#fff; color:var(--ink)}
+  input[type=text]:focus,button:focus-visible,.tab:focus-visible{outline:3px solid var(--navy); outline-offset:2px}
+  .row{display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px dashed var(--line)}
+  .row:last-child{border-bottom:0}
+  .row .name{flex:1; min-width:0}
+  .row .name b{display:block; font-size:16px; font-weight:700}
+  .row .name span{display:block; font-size:13px; color:var(--muted)}
+  .price{font-family:var(--marker); font-size:19px; color:var(--blue-deep); font-weight:700; white-space:nowrap}
+  .was{font-family:var(--body); font-size:12px; color:var(--muted); text-decoration:line-through; margin-left:6px}
+  .stepper{display:flex; align-items:center; gap:6px}
+  .stepper button{width:40px; height:40px; border-radius:11px; border:1px solid var(--line); background:#fff; font-size:22px; line-height:1; font-weight:700; color:var(--navy); cursor:pointer}
+  .stepper button:active{transform:translateY(1px)}
+  .stepper button[disabled]{opacity:.35}
+  .qty{min-width:24px; text-align:center; font-size:18px; font-weight:800}
+  .qty.on{color:var(--blue-deep)}
+  .footbar{position:fixed; left:0; right:0; bottom:0; z-index:5; background:var(--paper); border-top:1px solid var(--line); padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
+  .footbar .wrap{display:flex; align-items:center; gap:12px}
+  .total{flex:1}
+  .total small{display:block; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; font-weight:700}
+  .total b{font-family:var(--display); font-size:30px; color:var(--navy); line-height:1}
+  .send{border:0; border-radius:14px; padding:15px 20px; font-size:17px; font-weight:800; background:var(--blue); color:#fff; box-shadow:var(--shadow); cursor:pointer}
+  .send[disabled]{background:#B9C7D2; box-shadow:none}
+  .note{font-size:13px; color:var(--muted); margin:8px 2px 0; line-height:1.45}
+  h2{font-family:var(--display); font-size:22px; margin:18px 2px 8px; color:var(--navy); letter-spacing:.02em}
+  .order{background:var(--paper); border:1px solid var(--line); border-left:6px solid var(--blue); border-radius:14px; padding:12px; margin-bottom:10px}
+  .order.done{border-left-color:var(--shutter); opacity:.72}
+  .order-top{display:flex; align-items:baseline; gap:8px}
+  .order-top b{font-size:17px; flex:1}
+  .order-top .amt{font-family:var(--display); font-size:22px; color:var(--navy)}
+  .order .when{font-size:12px; color:var(--muted); margin-top:2px}
+  .order ul{margin:8px 0 0; padding-left:18px; font-size:15px}
+  .order .msg{margin-top:6px; font-size:14px; font-style:italic; color:var(--muted)}
+  .order-actions{display:flex; gap:8px; margin-top:10px}
+  .btn{border:1px solid var(--line); background:#fff; color:var(--navy); border-radius:10px; padding:9px 12px; font-size:14px; font-weight:700; cursor:pointer}
+  .btn.go{background:var(--shutter); border-color:var(--shutter); color:#12300A}
+  .btn.ghost{color:var(--muted)}
+  .summary{display:flex; gap:10px; margin-bottom:6px}
+  .stat{flex:1; background:var(--navy); color:#fff; border-radius:14px; padding:12px}
+  .stat small{display:block; font-size:11px; letter-spacing:.1em; text-transform:uppercase; opacity:.75; font-weight:700}
+  .stat b{font-family:var(--display); font-size:26px}
+  .empty{background:var(--paper); border:1px dashed var(--line); border-radius:14px; padding:22px 16px; text-align:center; color:var(--muted); font-size:15px}
+  .toast{position:fixed; left:50%; bottom:96px; transform:translateX(-50%) translateY(10px); background:var(--navy); color:#fff; padding:12px 18px; border-radius:999px; font-weight:700; font-size:15px; opacity:0; pointer-events:none; transition:.22s; z-index:9; max-width:88vw; text-align:center}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+  .hidden{display:none !important}
+  .barline{display:flex; align-items:center; justify-content:space-between; margin:2px 2px 10px}
+  .barline span{font-size:13px; color:var(--muted)}
+  @media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+
+<header class="board">
+  <div class="board-inner wrap">
+    <p class="eyebrow">Islamic Relief EMS</p>
+    <h1>BBQ ORDERS</h1>
+    <span class="badge">Stall vendors — half price</span>
+    <div class="tabs" role="tablist">
+      <button class="tab" id="tab-order" role="tab" aria-selected="true">Place an order</button>
+      <button class="tab" id="tab-team" role="tab" aria-selected="false">Kitchen list</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section id="view-order">
+    <div class="card">
+      <label class="field" for="vendor">Your stall</label>
+      <input type="text" id="vendor" placeholder="e.g. Henna stall, Sara" autocomplete="off">
+    </div>
+
+    <div class="card" id="menu"></div>
+
+    <div class="card">
+      <label class="field" for="msg">Anything else</label>
+      <input type="text" id="msg" placeholder="No sauce, extra napkins..." autocomplete="off">
+    </div>
+
+    <p class="note">Prices are the vendor rate, already 50% off the board. Mocktails and water are off the menu.</p>
+  </section>
+
+  <section id="view-team" class="hidden">
+    <div class="summary">
+      <div class="stat"><small>Waiting</small><b id="stat-waiting">0</b></div>
+      <div class="stat"><small>Served</small><b id="stat-done">0</b></div>
+      <div class="stat"><small>Taken</small><b id="stat-money">£0</b></div>
+    </div>
+    <div class="barline">
+      <span id="synced">Updating…</span>
+      <button class="btn ghost" id="refresh">Refresh</button>
+    </div>
+    <h2>Waiting</h2>
+    <div id="list-waiting"></div>
+    <h2>Served</h2>
+    <div id="list-done"></div>
+    <div style="margin:18px 2px 8px">
+      <button class="btn ghost" id="clear">Clear all orders</button>
+    </div>
+  </section>
+</main>
+
+<div class="footbar" id="footbar">
+  <div class="wrap">
+    <div class="total"><small>Order total</small><b id="total">£0.00</b></div>
+    <button class="send" id="send" disabled>Send to kitchen</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '/api/orders';
+
+// Vendor prices (50% off the board). Keep in step with netlify/functions/orders.mjs.
+const MENU = [
+  {id:'burger',  name:'Lamb burger',    price:1.75, full:3.50},
+  {id:'chicken', name:'Fillet chicken', price:2.50, full:5.00},
+  {id:'wings',   name:'Wings (4)',      price:1.25, full:2.50},
+  {id:'chips',   name:'Chips',          price:1.25, full:2.50},
+  {id:'can',     name:'Can of drink',   price:0.50, full:1.00},
+  {id:'meal',    name:'Make it a meal', price:0.75, full:1.50, hint:'adds chips + a drink'}
+];
+
+const cart = {};
+let orders = [];
+const $ = id => document.getElementById(id);
+const money = n => '£' + n.toFixed(2);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- menu ---------- */
+function drawMenu(){
+  $('menu').innerHTML = MENU.map(item => `
+    <div class="row">
+      <div class="name">
+        <b>${item.name}</b>
+        <span>${item.hint ? item.hint : 'vendor rate'}</span>
+      </div>
+      <div class="price">${money(item.price)}<span class="was">${money(item.full)}</span></div>
+      <div class="stepper">
+        <button data-minus="${item.id}" aria-label="One less ${item.name}" disabled>−</button>
+        <span class="qty" id="q-${item.id}">0</span>
+        <button data-plus="${item.id}" aria-label="One more ${item.name}">+</button>
+      </div>
+    </div>`).join('');
+}
+function bump(id, by){
+  cart[id] = Math.max(0, (cart[id]||0) + by);
+  const q = $('q-'+id);
+  q.textContent = cart[id];
+  q.classList.toggle('on', cart[id] > 0);
+  document.querySelector(`[data-minus="${id}"]`).disabled = cart[id] === 0;
+  paintTotal();
+}
+const cartTotal = () => MENU.reduce((sum,i) => sum + (cart[i.id]||0) * i.price, 0);
+function paintTotal(){
+  const t = cartTotal();
+  $('total').textContent = money(t);
+  $('send').disabled = t === 0;
+}
+document.addEventListener('click', e => {
+  const d = e.target.dataset || {};
+  if (d.plus) bump(d.plus, 1);
+  if (d.minus) bump(d.minus, -1);
+});
+
+/* ---------- sending ---------- */
+async function send(){
+  const vendor = $('vendor').value.trim();
+  if (!vendor){ $('vendor').focus(); return toast('Add your stall name first'); }
+  $('send').disabled = true;
+  try {
+    const res = await fetch(API, {
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body: JSON.stringify({ vendor, qty: cart, msg: $('msg').value.trim() })
+    });
+    if (res.status === 404) throw new Error('Order server missing. The site was deployed without its function.');
+    if (!res.ok) throw new Error((await res.json().catch(()=>({}))).error || ('Server said ' + res.status));
+    MENU.forEach(i => { if (cart[i.id]) bump(i.id, -cart[i.id]); });
+    $('msg').value = '';
+    try { localStorage.setItem('vendor-name', vendor); } catch(e){}
+    toast('Sent to the kitchen');
+  } catch(err){
+    toast(err.message || 'No connection. Try again.');
+    paintTotal();
+  }
+}
+
+/* ---------- kitchen list ---------- */
+const stamp = ms => new Date(ms).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+function orderCard(o){
+  return `<div class="order ${o.status === 'done' ? 'done' : ''}">
+    <div class="order-top"><b>${esc(o.vendor)}</b><span class="amt">${money(o.total)}</span></div>
+    <div class="when">${stamp(o.at)}</div>
+    <ul>${o.items.map(i => `<li>${i.qty} × ${esc(i.name)}</li>`).join('')}</ul>
+    ${o.msg ? `<div class="msg">${esc(o.msg)}</div>` : ''}
+    <div class="order-actions">
+      ${o.status === 'done'
+        ? `<button class="btn" data-undo="${o.id}">Back to waiting</button>`
+        : `<button class="btn go" data-done="${o.id}">Mark served</button>`}
+      <button class="btn ghost" data-drop="${o.id}">Delete</button>
+    </div>
+  </div>`;
+}
+async function paintTeam(){
+  try {
+    const res = await fetch(API, {cache:'no-store'});
+    if (res.status === 404) throw new Error('Order server missing (function not deployed)');
+    if (!res.ok) throw new Error('Server said ' + res.status);
+    orders = await res.json();
+  } catch(err){
+    $('synced').textContent = err.message || 'Cannot reach the order list';
+    return;
+  }
+  const waiting = orders.filter(o => o.status !== 'done');
+  const done = orders.filter(o => o.status === 'done');
+  $('list-waiting').innerHTML = waiting.length ? waiting.map(orderCard).join('')
+    : '<div class="empty">Nothing waiting. Good place to be.</div>';
+  $('list-done').innerHTML = done.length ? done.map(orderCard).join('')
+    : '<div class="empty">Served orders land here.</div>';
+  $('stat-waiting').textContent = waiting.length;
+  $('stat-done').textContent = done.length;
+  $('stat-money').textContent = money(orders.reduce((s,o) => s + o.total, 0)).replace(/\.00$/,'');
+  $('synced').textContent = 'Updated ' + stamp(Date.now());
+}
+document.addEventListener('click', async e => {
+  const d = e.target.dataset || {};
+  if (d.done || d.undo){
+    const id = d.done || d.undo;
+    try {
+      await fetch(API, {method:'PATCH', headers:{'content-type':'application/json'},
+        body: JSON.stringify({ id, status: d.done ? 'done' : 'waiting' })});
+    } catch(err){ return toast('Could not update'); }
+    paintTeam();
+  }
+  if (d.drop){
+    if (!confirm('Delete this order?')) return;
+    try { await fetch(API + '?id=' + encodeURIComponent(d.drop), {method:'DELETE'}); } catch(err){}
+    paintTeam();
+  }
+});
+$('clear').addEventListener('click', async () => {
+  if (!confirm('Delete every order? This cannot be undone.')) return;
+  try { await fetch(API + '?all=yes', {method:'DELETE'}); } catch(err){ return toast('Could not clear'); }
+  paintTeam();
+  toast('Order list cleared');
+});
+$('refresh').addEventListener('click', paintTeam);
+
+/* ---------- tabs ---------- */
+let timer = null;
+function show(which){
+  const team = which === 'team';
+  $('tab-team').setAttribute('aria-selected', team);
+  $('tab-order').setAttribute('aria-selected', !team);
+  $('view-team').classList.toggle('hidden', !team);
+  $('view-order').classList.toggle('hidden', team);
+  $('footbar').classList.toggle('hidden', team);
+  document.body.style.paddingBottom = team ? '24px' : '110px';
+  clearInterval(timer);
+  if (team){ paintTeam(); timer = setInterval(paintTeam, 8000); }
+  window.scrollTo(0,0);
+}
+$('tab-team').addEventListener('click', () => show('team'));
+$('tab-order').addEventListener('click', () => show('order'));
+
+/* ---------- toast ---------- */
+let toastTimer = null;
+function toast(text){
+  const el = $('toast');
+  el.textContent = text;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+/* ---------- boot ---------- */
+drawMenu();
+paintTotal();
+$('send').addEventListener('click', send);
+try { const v = localStorage.getItem('vendor-name'); if (v) $('vendor').value = v; } catch(e){}
+if (location.hash === '#kitchen') show('team');
+</script>
+</body>
+</html>
